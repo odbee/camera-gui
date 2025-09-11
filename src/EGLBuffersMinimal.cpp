@@ -3,7 +3,7 @@
 
 #define EGL_BUFFERS_IMPLEMENTATION // Define a special macro here
 
-#include "EGLBuffers.hpp"
+#include "EGLBuffersMinimal.hpp"
 #include "EGLErrors.hpp"
 #include <libdrm/drm_fourcc.h>
 
@@ -40,9 +40,9 @@ static void get_colour_space_info(std::optional<libcamera::ColorSpace> const &cs
 		encoding = EGL_ITU_REC709_EXT;
 }
 
-EglBuffers::EglBuffers(SharedContext &context)
+EglBuffers::EglBuffers(GetStreamData &context)
     : shared(context),
-      context(shared.get_context()),
+      context(shared.get_shared_memory()),
       current_index_(-1),
       first_time_(true),
       last_fd_(-1),
@@ -174,14 +174,17 @@ int EglBuffers::initEGLExtensions() {
 }
 
 
-void EglBuffers::makeBuffersSimple(const SharedMemoryBuffer* context)
-{
-    simpleBuffer.fd= getSharedProcFd(context->procid, context->fd_isp);
-    simpleBuffer.size = context->isp_length;
-    simpleBuffer.info = context->isp;
+void EglBuffers::makeBuffer(const SharedStreamData* context)
+{   console->info("Making simple buffer!");
+    MyEglError();
 
-    get_colour_space_info(simpleBuffer.info.colour_space, simpleBuffer.encoding, simpleBuffer.range);
-	static const EGLint simpleAttribs[] = {
+    simpleBuffer.fd=context->fd;
+    simpleBuffer.size=context->span_size;
+    simpleBuffer.info=context->stream_info;
+    EGLint encoding, range;
+    get_colour_space_info(simpleBuffer.info.colour_space, encoding, range);
+    console->info("Planning to make buffer: {}x{} stride {} fd {} texture {}", simpleBuffer.info.width, simpleBuffer.info.height, simpleBuffer.info.stride, simpleBuffer.fd, simpleBuffer.texture);
+	EGLint attribs[] = {
 		EGL_WIDTH, static_cast<EGLint>(simpleBuffer.info.width),
 		EGL_HEIGHT, static_cast<EGLint>(simpleBuffer.info.height),
 		EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_YUV420,
@@ -194,123 +197,55 @@ void EglBuffers::makeBuffersSimple(const SharedMemoryBuffer* context)
 		EGL_DMA_BUF_PLANE2_FD_EXT, simpleBuffer.fd,
 		EGL_DMA_BUF_PLANE2_OFFSET_EXT, static_cast<EGLint>(simpleBuffer.info.stride * simpleBuffer.info.height + (simpleBuffer.info.stride / 2) * (simpleBuffer.info.height / 2)),
 		EGL_DMA_BUF_PLANE2_PITCH_EXT, static_cast<EGLint>(simpleBuffer.info.stride / 2),
-		EGL_YUV_COLOR_SPACE_HINT_EXT, simpleBuffer.encoding,
-		EGL_SAMPLE_RANGE_HINT_EXT, simpleBuffer.range,
+		EGL_YUV_COLOR_SPACE_HINT_EXT, encoding,
+		EGL_SAMPLE_RANGE_HINT_EXT, range,
 		EGL_NONE
 	};
-
-
-
+    console->info("Creating EGLImage from fd {} attribs: w:{} h:{} fourcc:{} p0fd:{} p0off:{} p0pitch:{} p1fd:{} p1off:{} p1pitch:{} p2fd:{} p2off:{} p2pitch:{} enc:{} range:{}", simpleBuffer.fd,
+        attribs[1], attribs[3], attribs[5],
+        attribs[7], attribs[9], attribs[11],
+        attribs[13], attribs[15], attribs[17],
+        attribs[19], attribs[21], attribs[23],
+        attribs[25], attribs[27]);
     
-    EGLImage simpleImage = p_eglCreateImageKHR( egl_display_,
-                                                EGL_NO_CONTEXT,
-                                                EGL_LINUX_DMA_BUF_EXT,
-                                                NULL,
-                                                simpleAttribs);
-                       
-                                                
-    MyEglError();
-    if (!simpleImage){
-        MyEglError();
-        throw std::runtime_error("failed to import fd " + std::to_string(simpleBuffer.fd));
-    }
+    EGLImage image = p_eglCreateImageKHR(egl_display_, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, NULL, attribs);
 
-    glActiveTexture(GL_TEXTURE0);
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureID);
+	MyEglError();
+
+    if (!image)
+		throw std::runtime_error("failed to import fd " + std::to_string(simpleBuffer.fd));
+
+    glGenTextures(1, &simpleBuffer.texture);
+	glBindTexture(GL_TEXTURE_EXTERNAL_OES, simpleBuffer.texture);
 	glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    p_glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, simpleImage);
-    MyEglError();
-    p_eglDestroyImageKHR(egl_display_, simpleImage);
-    MyEglError();
-    // glGenerateMipmap(GL_TEXTURE_2D);
-    simpleBuffer.made=true;
-    console->info("Simple Buffer mapped! isp:{}", simpleBuffer.fd);
-
-}
-
-void EglBuffers::makeBuffersFixedTexture(const SharedMemoryBuffer* context)
-{
-
-
-            // TEXTURE ESCAPADES
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    int texturewidth, textureheight, nrChannels;
-    unsigned char *data = stbi_load("assets/container.jpg", &texturewidth, &textureheight, &nrChannels, 0);
-    if (data)
-    {  
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texturewidth, textureheight, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        // glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        console->error("Failed to load texture");
-    }
-
-    EGLClientBuffer clientBuffer = (EGLClientBuffer)(uintptr_t)textureID;
-    EGLint attribs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE };
-    EGLImageKHR eglImage = p_eglCreateImageKHR(
-        egl_display_,
-        eglGetCurrentContext(),  // or EGL_NO_CONTEXT
-        EGL_GL_TEXTURE_2D_KHR,
-        clientBuffer,
-        attribs
-    );
-        MyEglError();
+	p_glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, image);
+    p_eglDestroyImageKHR(egl_display_, image);
+    simpleBuffer.encoding = encoding;
+    simpleBuffer.range = range;
+    simpleBuffer.made = true;
 
 
 
-    stbi_image_free(data);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glGenTextures(1, &extTexture);
-    glBindTexture(GL_TEXTURE_2D, extTexture);
-    p_glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, eglImage);
-
-
-    simpleBuffer.made=true;
-    console->info("Simple Buffer mapped! isp:{}", simpleBuffer.fd);
 
 }
-
-
 
 
 void EglBuffers::simpleUpdate(){
-    if(!shared.connected()){
-        if(!first_time_){
-            reset();
-        }
-        return;
-    }
-    
-    if(first_time_)
+
+    if (first_time_){
         first_time_ = false;
+    }
     
-    if (!simpleBuffer.made){
-        makeBuffersFixedTexture(context);
+
+    if(simpleBuffer.fd==-1){
+        makeBuffer(context);
     }
-    if (last_fd_ != context->frame){
-        newFrame_ = true;
-        console->info("FD: {}, FN: {}, FR: {}, SEQ: {}", simpleBuffer.fd, context->frame, context->metadata.focus, context->metadata.exposure_time);
-    }
-    last_fd_ = context->frame;
+
 
 }
 
-void EglBuffers::updateTexture(){
-    glClear(GL_COLOR_BUFFER_BIT);
+void EglBuffers::draw() {
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, simpleBuffer.texture);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, extTexture);
-
-
-    // glBindTexture(GL_TEXTURE_EXTERNAL_OES, textureID);
 }

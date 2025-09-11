@@ -15,15 +15,23 @@ egl_dep = dependency('egl', required: true)
 dependencies = [opengl_dep, sdl2_dep, libcamera_dep, fmt_dep, egl_dep] 
 # Source files
 sources = [
-  
   'src/glad.c',
   'src/SDLHandler.cpp',
   'src/ShaderUtils.cpp',
   'src/CameraPreview.cpp',
   'src/SharedContext.cpp',
+  'src/EGLBuffersMinimal.cpp',
+  'src/GetStreamData.cpp',
+]
+
+sources_alt = [
+  'src/glad.c',
+  'src/SDLHandler.cpp',
+  'src/ShaderUtils.cpp',
+  'src/CameraPreview_alt.cpp',
+  'src/SharedContext.cpp',
   'src/EGLBuffers.cpp',
   'src/GetStreamData.cpp',
-
 ]
 
 # Get all asset files
@@ -70,6 +78,13 @@ endforeach
 # Create executable
 exe = executable('camera_gui',
   ['src/main.cpp', sources],
+  include_directories: include_directories('include'),
+  dependencies: dependencies,
+  install: false
+)
+
+exe = executable('camera_gui_alt',
+  ['src/main_alt.cpp', sources_alt],
   include_directories: include_directories('include'),
   dependencies: dependencies,
   install: false

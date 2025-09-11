@@ -25,16 +25,6 @@
 
 #define PROJECT_ID 0x4341494D // ASCII for "CAIM`"
 
-
-
-class GetStreamData {
-public:
-    GetStreamData();
-    ~GetStreamData();
-
-private:
-
-
     struct StreamInfo
     {
     StreamInfo() : width(0), height(0), stride(0) {}
@@ -44,16 +34,30 @@ private:
         libcamera::PixelFormat pixel_format;
         std::optional<libcamera::ColorSpace> colour_space;
     };
-    struct SharedStreamData{
+
+struct SharedStreamData{
         SharedStreamData() : procid(-1) {}
         StreamInfo stream_info;
         int procid;
         int fd;
         int span_size;
     };
+
+
+class GetStreamData {
+public:
+    GetStreamData();
+    ~GetStreamData();
+    SharedStreamData* get_shared_memory() const{ return shared_memory; }
+    bool connected(){return state_ == STATE_VALID && !timedOut_;}
+
+private:
+
+
+
+
     uint64_t getTs();
     void threadTask();
-    SharedStreamData* get_shared_memory() const{ return shared_memory; }
     bool isProcessAlive(pid_t pid);
     
 

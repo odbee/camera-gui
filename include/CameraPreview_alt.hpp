@@ -2,8 +2,8 @@
 #include <GLES3/gl3.h> // <-- Add this line
 #include <GLES2/gl2ext.h>
 #include <ShaderUtils.hpp>
-#include "EGLBuffersMinimal.hpp"  
-#include "GetStreamData.hpp"
+#include "EGLBuffers.hpp"  
+#include "SharedContext.hpp"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
@@ -23,7 +23,7 @@ class CameraPreview {
 
         Shader shaderProgram;
         std::shared_ptr<spdlog::logger> console;
-        GetStreamData sharedContext;
+        SharedContext sharedContext;
         EglBuffers eglBuffers;
 
         GLfloat vertices[20] = {

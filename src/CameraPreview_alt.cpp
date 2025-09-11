@@ -1,4 +1,4 @@
-#include "CameraPreview.hpp"
+#include "CameraPreview_alt.hpp"
 
 CameraPreview::CameraPreview(int width, int height):
 width(width),

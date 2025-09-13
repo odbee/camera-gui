@@ -3,7 +3,7 @@
 
 #define EGL_BUFFERS_IMPLEMENTATION // Define a special macro here
 
-#include "EglBuffers.hpp"
+#include "CameraBuffers.hpp"
 #include "EGLErrors.hpp"
 #include <libdrm/drm_fourcc.h>
 
@@ -83,7 +83,7 @@ static GLint link_program(GLint vs, GLint fs)
 
 void gl_setup()
 {
-    GLuint VAO, VBO, EBO;
+    GLuint VAO, VBO;
 	const char* vvss =
          "#version 300 es\n"
          "layout(location = 0) in vec4 pos;\n"
@@ -105,7 +105,7 @@ void gl_setup()
 	"out vec4 FragColor;\n"
 	"uniform samplerExternalOES s;\n"
 	"void main() {\n"
-	"  FragColor = texture2D(s, texcoord)+vec4(0.3,0.0,0.0,0.0);\n"
+	"  FragColor = texture2D(s, texcoord);\n"
 	"}\n";
 	GLint fs_s = compile_shader(GL_FRAGMENT_SHADER, fs);
 	GLint prog = link_program(vs_s, fs_s);
@@ -120,24 +120,17 @@ void gl_setup()
 	// static const float verts[] = { -w_factor, -h_factor, w_factor, -h_factor, w_factor, h_factor, -w_factor, h_factor };
 	static const float verts[] = {
     // x, y, z, u, v
-    -1, -1, 0, 0, 0,
-     1, -1, 0, 1, 0,
-     1,  1, 0, 1, 1,
-    -1,  1, 0, 0, 1
+    -0.9f, -0.9f, 0, 0, 0,
+     0.9f, -0.9f, 0, 1, 0,
+     0.9f,  0.9f, 0, 1, 1,
+    -0.9f,  0.9f, 0, 0, 1
 	};
 	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
-
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(1,2, GL_FLOAT, GL_FALSE, 5*sizeof(float),(void*)(3 * sizeof(float)));
-	
 	glEnableVertexAttribArray(1);
 }
-
-
-
-
-
 
 static void get_colour_space_info(std::optional<libcamera::ColorSpace> const &cs, EGLint &encoding, EGLint &range)
 {
@@ -153,18 +146,23 @@ static void get_colour_space_info(std::optional<libcamera::ColorSpace> const &cs
 }
 
 
-EglBuffers::EglBuffers(): first_time_(true)
+CameraBuffers::CameraBuffers(): sharedData(),first_time_(true)
 {
-     console = spdlog::stdout_color_mt("egl_buffers");
+    console = spdlog::stdout_color_mt("egl_buffers");
     initEGLExtensions();
+    gl_setup();
+    egl_display_=eglGetCurrentDisplay();
+    console->info("(EGL Vendor) {} (EGL Version) {}", eglQueryString(egl_display_, EGL_VENDOR), eglQueryString(egl_display_, EGL_VERSION) );
+
+
 }
-EglBuffers::~EglBuffers()
+CameraBuffers::~CameraBuffers()
 {
 }
 
 
 
-int EglBuffers::initEGLExtensions() {
+int CameraBuffers::initEGLExtensions() {
     
     // 1. Check for EGL_KHR_image support
     const char* platform_extensions = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
@@ -264,31 +262,33 @@ int EglBuffers::initEGLExtensions() {
 
 }
 
-void EglBuffers::Show(int procid, int fd, int span_size, StreamInfo const &info)
+void CameraBuffers::Show()
 {
+    int fd = sharedData.get_shared_memory()->fd;
+    int span_size = sharedData.get_shared_memory()->span_size;
+    int procid = sharedData.get_shared_memory()->procid;
+    StreamInfo info=sharedData.get_shared_memory()->stream_info;
+
     Buffer &buffer = buffers_[fd];
 
     if (first_time_)
     {
-        console->info("setting up fd{}, or buffer fd {}",fd, buffer.fd);
-		gl_setup();
+		
 		first_time_ = false;
     }
 
 	if (buffer.fd == -1)
+    
 		makeBuffer(procid, fd, span_size, info, buffer);
 	last_fd_ = fd;
 
-    glClearColor(((fd-30)/10), 0, 0, 0);
     
-    glClear(GL_COLOR_BUFFER_BIT);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, buffer.texture);
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
-
 }
 
-void EglBuffers::resetBuffers()
+void CameraBuffers::resetBuffers()
 {
     for (auto &it : buffers_)
 		glDeleteTextures(1, &it.second.texture);
@@ -297,7 +297,7 @@ void EglBuffers::resetBuffers()
 	first_time_ = true;
 }
 
-void EglBuffers::makeBuffer(int procid, int fd, size_t size, StreamInfo const &info, Buffer &buffer)
+void CameraBuffers::makeBuffer(int procid, int fd, size_t size, StreamInfo const &info, Buffer &buffer)
 {
     buffer.fd = getSharedProcFd(procid,fd);
     console->info("received PROCID {} and FD {} to Create {}",procid, fd, buffer.fd );
@@ -326,12 +326,7 @@ void EglBuffers::makeBuffer(int procid, int fd, size_t size, StreamInfo const &i
 		EGL_NONE
 	};
 
-	egl_display_=eglGetCurrentDisplay();
 
-	const char* vendor = eglQueryString(egl_display_, EGL_VENDOR);
-	const char* version = eglQueryString(egl_display_, EGL_VERSION);
-	std::cout << "Vendor: " << vendor << "\n";
-	std::cout << "Version: " << version << "\n";
 	PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR = nullptr;
     eglCreateImageKHR = reinterpret_cast<PFNEGLCREATEIMAGEKHRPROC>(eglGetProcAddress("eglCreateImageKHR"));
 

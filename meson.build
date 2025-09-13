@@ -1,6 +1,6 @@
 project('opengl_project', ['c', 'cpp'],
   version: '0.1.0',
-  default_options: ['cpp_std=c++17'])
+  default_options: ['cpp_std=c++20'])
 
 # Import filesystem module
 fs = import('fs')
@@ -14,13 +14,26 @@ egl_dep = dependency('egl', required: true)
 
 dependencies = [opengl_dep, sdl2_dep, libcamera_dep, fmt_dep, egl_dep] 
 # Source files
-sources = [
+
+c_sources = [
   'src/glad.c',
+  'src/microui.c',
+  'src/gles31renderer.c',
+]
+
+gles31c_sources = [
+  'src/glad.c',
+  'src/microui.c',
+  'src/gles31renderer.c',
+]
+
+
+sources = [
   'src/SDLHandler.cpp',
   'src/ShaderUtils.cpp',
-  'src/CameraPreview.cpp',
-  'src/EglBuffers.cpp',
-  'src/GetStreamData.cpp',
+  'src/CameraBuffers.cpp',
+  'src/StreamDataHandler.cpp',
+
 ]
 
 
@@ -68,12 +81,25 @@ endforeach
 
 # Create executable
 executable('camera_gui',
-  ['src/main.cpp', sources],
+  ['src/main.cpp', sources, c_sources],
   include_directories: include_directories('include'),
   dependencies: dependencies,
   install: false
 )
 
+# executable('camera_microui',
+#   ['src/main_microui.cpp', sources, c_sources],
+#   include_directories: include_directories('include'),
+#   dependencies: dependencies,
+#   install: false
+# )
+
+# executable('camera_microui_demo',
+#   ['src/main_microui_demo.cpp', sources, gles31c_sources],
+#   include_directories: include_directories('include'),
+#   dependencies: dependencies,
+#   install: false
+# )
 
 
 

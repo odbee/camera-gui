@@ -1,8 +1,6 @@
 #pragma once
-#ifndef EGLBUFFERS_HPP
-#define EGLBUFFERS_HPP
 
-#include "GetStreamData.hpp"
+#include "StreamDataHandler.hpp"
 
 #include <map>
 #include <unistd.h>
@@ -37,7 +35,7 @@ typedef EGLBoolean (EGLAPIENTRYP eglQueryDevicesEXT_type)(EGLint max_devices, EG
 typedef EGLDisplay (EGLAPIENTRYP eglGetPlatformDisplayEXT_type)(EGLenum platform, void *native_display, const EGLint *attrib_list);
 
 #ifdef EGL_BUFFERS_IMPLEMENTATION
-    // This part is the definition. It will be included only in EglBuffers.cpp.
+    // This part is the definition. It will be included only in CameraBuffers.cpp.
     eglCreateImageKHR_type p_eglCreateImageKHR = nullptr;
     eglDestroyImageKHR_type p_eglDestroyImageKHR = nullptr;
     glEGLImageTargetTexture2DOES_type p_glEGLImageTargetTexture2DOES = nullptr;
@@ -61,12 +59,12 @@ namespace controls = libcamera::controls;
 
 
 
-class EglBuffers {
+class CameraBuffers {
     public:
-        explicit EglBuffers();
-        ~EglBuffers();
+        explicit CameraBuffers();
+        ~CameraBuffers();
         int initEGLExtensions();
-        void Show(int procid, int fd, int span_size, StreamInfo const &info);
+        void Show();
         void resetBuffers();
 
     private:
@@ -80,7 +78,7 @@ class EglBuffers {
         };
 
         void makeBuffer(int procid, int fd, size_t size, StreamInfo const &info, Buffer &buffer);
-        
+        StreamDataHandler sharedData;
         EGLDisplay egl_display_;
         std::map<int, Buffer> buffers_;
         int last_fd_;
@@ -88,4 +86,3 @@ class EglBuffers {
         std::shared_ptr<spdlog::logger> console;
 };
 
-#endif // EGLBUFFERS_HPP

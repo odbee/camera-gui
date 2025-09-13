@@ -44,10 +44,10 @@ struct SharedStreamData{
     };
 
 
-class GetStreamData {
+class StreamDataHandler {
 public:
-    GetStreamData();
-    ~GetStreamData();
+    StreamDataHandler();
+    ~StreamDataHandler();
     SharedStreamData* get_shared_memory() const{ return shared_memory; }
     bool connected(){return state_ == STATE_VALID && !timedOut_;}
 

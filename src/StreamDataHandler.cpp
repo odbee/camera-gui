@@ -1,7 +1,7 @@
-#include "GetStreamData.hpp"
+#include "StreamDataHandler.hpp"
 
 
-bool GetStreamData::isProcessAlive(pid_t pid) {
+bool StreamDataHandler::isProcessAlive(pid_t pid) {
     if (pid < 1) {
         return false;
     }
@@ -16,7 +16,7 @@ bool GetStreamData::isProcessAlive(pid_t pid) {
         return false;
     }
 }
-GetStreamData::GetStreamData(){
+StreamDataHandler::StreamDataHandler(){
     console = spdlog::stdout_color_mt("shared_context");
     int segment_id;
     key_t key = ftok("/tmp", PROJECT_ID);
@@ -50,12 +50,12 @@ GetStreamData::GetStreamData(){
         }
     }
     state_ |= (uint8_t)(shB && smB);
-    main_thread_ = std::thread(std::bind(&GetStreamData::threadTask, this));
+    main_thread_ = std::thread(std::bind(&StreamDataHandler::threadTask, this));
 
 }
 
 
-uint64_t GetStreamData::getTs(){
+uint64_t StreamDataHandler::getTs(){
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     return uint64_t(ts.tv_sec * 1000LL + ts.tv_nsec / 1000000);
@@ -63,7 +63,7 @@ uint64_t GetStreamData::getTs(){
 
 
 
-void GetStreamData::threadTask(){
+void StreamDataHandler::threadTask(){
     console->info("thread started!");
     const SharedStreamData* context = get_shared_memory();
     console->info("received context!");
@@ -107,7 +107,7 @@ void GetStreamData::threadTask(){
 }
 
 
-GetStreamData::~GetStreamData(){
+StreamDataHandler::~StreamDataHandler(){
        abortThread_ = true;
        if (main_thread_.joinable()) main_thread_.join();
        if (shared_memory && shared_memory != (void*)-1) shmdt(shared_memory);

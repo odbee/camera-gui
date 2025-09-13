@@ -177,10 +177,13 @@ int EglBuffers::initEGLExtensions() {
 void EglBuffers::makeBuffersSimple(const SharedMemoryBuffer* context)
 {
     simpleBuffer.fd= getSharedProcFd(context->procid, context->fd_isp);
+    console->info("got fd {} from procid {} and og fd {}", simpleBuffer.fd, context->procid, context->fd_isp);
+
     simpleBuffer.size = context->isp_length;
     simpleBuffer.info = context->isp;
 
     get_colour_space_info(simpleBuffer.info.colour_space, simpleBuffer.encoding, simpleBuffer.range);
+
 	static const EGLint simpleAttribs[] = {
 		EGL_WIDTH, static_cast<EGLint>(simpleBuffer.info.width),
 		EGL_HEIGHT, static_cast<EGLint>(simpleBuffer.info.height),
@@ -199,7 +202,12 @@ void EglBuffers::makeBuffersSimple(const SharedMemoryBuffer* context)
 		EGL_NONE
 	};
 
-
+    console->info("Creating EGLImage from fd {} attribs: w:{} h:{} fourcc:{} p0fd:{} p0off:{} p0pitch:{} p1fd:{} p1off:{} p1pitch:{} p2fd:{} p2off:{} p2pitch:{} enc:{} range:{}", context->fd_isp,
+        simpleAttribs[1], simpleAttribs[3], simpleAttribs[5],
+        simpleAttribs[7], simpleAttribs[9], simpleAttribs[11],
+        simpleAttribs[13], simpleAttribs[15], simpleAttribs[17],
+        simpleAttribs[19], simpleAttribs[21], simpleAttribs[23],
+        simpleAttribs[25], simpleAttribs[27]);
 
     
     EGLImage simpleImage = p_eglCreateImageKHR( egl_display_,
@@ -295,7 +303,7 @@ void EglBuffers::simpleUpdate(){
         first_time_ = false;
     
     if (!simpleBuffer.made){
-        makeBuffersFixedTexture(context);
+        makeBuffersSimple(context);
     }
     if (last_fd_ != context->frame){
         newFrame_ = true;

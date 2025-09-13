@@ -76,14 +76,14 @@ endforeach
 
 
 # Create executable
-exe = executable('camera_gui',
+executable('camera_gui',
   ['src/main.cpp', sources],
   include_directories: include_directories('include'),
   dependencies: dependencies,
   install: false
 )
 
-exe = executable('camera_gui_alt',
+executable('camera_gui_alt',
   ['src/main_alt.cpp', sources_alt],
   include_directories: include_directories('include'),
   dependencies: dependencies,

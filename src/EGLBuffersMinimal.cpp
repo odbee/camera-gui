@@ -177,8 +177,9 @@ int EglBuffers::initEGLExtensions() {
 void EglBuffers::makeBuffer(const SharedStreamData* context)
 {   console->info("Making simple buffer!");
     MyEglError();
-
-    simpleBuffer.fd=context->fd;
+ 
+    simpleBuffer.fd=getSharedProcFd(context->procid, context->fd);
+    console->info("got fd {} from procid {} and og fd {}", simpleBuffer.fd, context->procid, context->fd);
     simpleBuffer.size=context->span_size;
     simpleBuffer.info=context->stream_info;
     EGLint encoding, range;
@@ -220,6 +221,8 @@ void EglBuffers::makeBuffer(const SharedStreamData* context)
 	glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	p_glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, image);
+    
+    MyEglError();
     p_eglDestroyImageKHR(egl_display_, image);
     simpleBuffer.encoding = encoding;
     simpleBuffer.range = range;
@@ -237,7 +240,12 @@ void EglBuffers::simpleUpdate(){
         first_time_ = false;
     }
     
-
+    console->info("Simple update called with fd {} and last fd {}", context->fd, last_fd_);
+    if (context->fd != last_fd_){
+        last_fd_ = context->fd;
+        newFrame_ = true;
+        console->info("New frame detected with fd {}", context->fd);
+    }
     if(simpleBuffer.fd==-1){
         makeBuffer(context);
     }
@@ -246,6 +254,9 @@ void EglBuffers::simpleUpdate(){
 }
 
 void EglBuffers::draw() {
+    glActiveTexture(GL_TEXTURE0);      // Texture unit 0
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, simpleBuffer.texture);
+
+    newFrame_ = false;
 
 }

@@ -2,6 +2,7 @@
 #include <EGL/egl.h>
 #include <iostream>
 
+[[maybe_unused]]
 static void MyEglError(){
     EGLint error = eglGetError();  // Get the last error
     std::string errorMessage;

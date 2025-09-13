@@ -1,8 +1,6 @@
 #pragma once
-#ifndef EGLBUFFERS_HPP
-#define EGLBUFFERS_HPP
 
-#include "GetStreamData.hpp"
+#include "StreamDataHandler.hpp"
 
 #include <map>
 #include <unistd.h>
@@ -25,7 +23,7 @@
 
 #include <cstdio> // for fprintf
 
-
+int getSharedProcFd(int procid, int fd);
 
 // EGL_KHR_image extensions
 typedef EGLImage (EGLAPIENTRYP eglCreateImageKHR_type)(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list);
@@ -37,7 +35,7 @@ typedef EGLBoolean (EGLAPIENTRYP eglQueryDevicesEXT_type)(EGLint max_devices, EG
 typedef EGLDisplay (EGLAPIENTRYP eglGetPlatformDisplayEXT_type)(EGLenum platform, void *native_display, const EGLint *attrib_list);
 
 #ifdef EGL_BUFFERS_IMPLEMENTATION
-    // This part is the definition. It will be included only in EglBuffers.cpp.
+    // This part is the definition. It will be included only in CameraBuffers.cpp.
     eglCreateImageKHR_type p_eglCreateImageKHR = nullptr;
     eglDestroyImageKHR_type p_eglDestroyImageKHR = nullptr;
     glEGLImageTargetTexture2DOES_type p_glEGLImageTargetTexture2DOES = nullptr;
@@ -59,74 +57,32 @@ typedef EGLDisplay (EGLAPIENTRYP eglGetPlatformDisplayEXT_type)(EGLenum platform
 
 namespace controls = libcamera::controls;
 
-enum BufferType {
-    RAW,
-    ISP,
-    LORES,
-    LUMA
-};
-
-struct Buffer
-{
-    Buffer() : fd(-1) {}
-    int fd;
-    size_t size;
-    StreamInfo info;
-    GLuint texture;
-    EGLint encoding;
-    EGLint range;
-    bool made=false;
-};
-
-struct FrameBuffer
-{
-    FrameBuffer() : mapped(-1) {}
-    Buffer raw;
-    Buffer isp;
-    Buffer lores;
-    Buffer luma;
-    libcamera::ControlList metadata;
-    unsigned int sequence;
-    float framerate;
-    int mapped;
-};
 
 
-class EglBuffers {
+class CameraBuffers {
     public:
-        explicit EglBuffers(GetStreamData &context);
-        ~EglBuffers();
+        explicit CameraBuffers();
+        ~CameraBuffers();
         int initEGLExtensions();
-        void simpleUpdate();
-        void draw();
-        bool new_frame(){
-            bool val = newFrame_;
-            newFrame_ = false;
-            return val;
-        }
-        Buffer simpleBuffer;
-        GLuint textureID;
-        GLuint extTexture;
-        GLuint fbo;
-
-
-        FrameBuffer& getBuffer() {return buffers_[current_index_]; }
+        void Show();
+        void resetBuffers();
 
     private:
+        struct Buffer
+        {
+            Buffer() : fd(-1) {}
+            int fd;
+            size_t size;
+            StreamInfo info;
+            GLuint texture;
+        };
 
-        void makeBuffer(const SharedStreamData* context);
-        void reset();
+        void makeBuffer(int procid, int fd, size_t size, StreamInfo const &info, Buffer &buffer);
+        StreamDataHandler sharedData;
         EGLDisplay egl_display_;
-        GetStreamData &shared;
-        const SharedStreamData* context;
-
-        int current_index_;
-        std::map<int, FrameBuffer> buffers_; // map the DMABUF's fd to the Buffer
-        bool first_time_;
+        std::map<int, Buffer> buffers_;
         int last_fd_;
-        bool newFrame_;
-
+        bool first_time_;
         std::shared_ptr<spdlog::logger> console;
 };
 
-#endif // EGLBUFFERS_HPP

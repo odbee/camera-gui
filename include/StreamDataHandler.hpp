@@ -25,7 +25,7 @@
 
 #define PROJECT_ID 0x4341494D // ASCII for "CAIM`"
 
-    struct StreamInfo
+struct StreamInfo
     {
     StreamInfo() : width(0), height(0), stride(0) {}
         unsigned int width;
@@ -44,17 +44,14 @@ struct SharedStreamData{
     };
 
 
-class GetStreamData {
+class StreamDataHandler {
 public:
-    GetStreamData();
-    ~GetStreamData();
+    StreamDataHandler();
+    ~StreamDataHandler();
     SharedStreamData* get_shared_memory() const{ return shared_memory; }
     bool connected(){return state_ == STATE_VALID && !timedOut_;}
 
 private:
-
-
-
 
     uint64_t getTs();
     void threadTask();

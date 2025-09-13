@@ -1,5 +1,6 @@
 #include "SDLHandler.hpp"
 #include <iostream>
+#include "microui.h"
 
 
 
@@ -19,8 +20,9 @@ SDLHandler::SDLHandler(
     int n = SDL_GetNumVideoDrivers();
     printf("Available video drivers:\n");
     for (int i = 0; i < n; i++) {
-        printf("  %s\n", SDL_GetVideoDriver(i));
-    }
+        printf("  %s  - ", SDL_GetVideoDriver(i));
+    }  
+    printf("\n");
 
 
     const char* driver = SDL_GetCurrentVideoDriver();
@@ -109,4 +111,38 @@ void SDLHandler::swapWindow()
 {
     SDL_GL_SwapWindow(m_window);
 
+}
+
+void SDLHandler::r_draw_rect(mu_Rect rect, mu_Color color)
+{
+}
+
+void SDLHandler::r_draw_text(const char *text, mu_Vec2 pos, mu_Color color)
+{
+}
+
+void SDLHandler::r_draw_icon(int id, mu_Rect rect, mu_Color color)
+{
+}
+
+int SDLHandler::r_get_text_width(const char *text, int len)
+{
+    return 0;
+}
+
+int SDLHandler::r_get_text_height(void)
+{
+    return 0;
+}
+
+void SDLHandler::r_set_clip_rect(mu_Rect rect)
+{
+}
+
+void SDLHandler::r_clear(mu_Color color)
+{
+}
+
+void SDLHandler::r_present(void)
+{
 }

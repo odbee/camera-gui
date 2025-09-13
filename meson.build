@@ -87,19 +87,19 @@ executable('camera_gui',
   install: false
 )
 
-# executable('camera_microui',
-#   ['src/main_microui.cpp', sources, c_sources],
-#   include_directories: include_directories('include'),
-#   dependencies: dependencies,
-#   install: false
-# )
+executable('camera_microui',
+  ['src/main_microui.cpp', sources, c_sources],
+  include_directories: include_directories('include'),
+  dependencies: dependencies,
+  install: false
+)
 
-# executable('camera_microui_demo',
-#   ['src/main_microui_demo.cpp', sources, gles31c_sources],
-#   include_directories: include_directories('include'),
-#   dependencies: dependencies,
-#   install: false
-# )
+executable('camera_microui_demo',
+  ['src/main_microui_demo.cpp', sources, gles31c_sources],
+  include_directories: include_directories('include'),
+  dependencies: dependencies,
+  install: false
+)
 
 
 

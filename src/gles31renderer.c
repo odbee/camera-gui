@@ -1,4 +1,8 @@
 #include <SDL2/SDL.h>
+// Define this before any GL includes to get function prototypes
+#ifndef GL_GLEXT_PROTOTYPES
+#define GL_GLEXT_PROTOTYPES 1
+#endif
 #include <SDL2/SDL_opengles2.h>
 #include <assert.h>
 #include <string.h>

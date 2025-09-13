@@ -2,7 +2,7 @@
 #include <GLES3/gl3.h> // <-- Add this line
 #include <GLES2/gl2ext.h>
 #include <ShaderUtils.hpp>
-#include "EGLBuffersMinimal.hpp"  
+#include "EglBuffers.hpp"  
 #include "GetStreamData.hpp"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>

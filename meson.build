@@ -19,20 +19,11 @@ sources = [
   'src/SDLHandler.cpp',
   'src/ShaderUtils.cpp',
   'src/CameraPreview.cpp',
-  'src/SharedContext.cpp',
-  'src/EGLBuffersMinimal.cpp',
+  'src/EglBuffers.cpp',
   'src/GetStreamData.cpp',
 ]
 
-sources_alt = [
-  'src/glad.c',
-  'src/SDLHandler.cpp',
-  'src/ShaderUtils.cpp',
-  'src/CameraPreview_alt.cpp',
-  'src/SharedContext.cpp',
-  'src/EGLBuffers.cpp',
-  'src/GetStreamData.cpp',
-]
+
 
 # Get all asset files
 asset_files = run_command('find', meson.current_source_dir() / 'assets', '-type', 'f', check: true).stdout().strip().split('\n')
@@ -83,12 +74,7 @@ executable('camera_gui',
   install: false
 )
 
-executable('camera_gui_alt',
-  ['src/main_alt.cpp', sources_alt],
-  include_directories: include_directories('include'),
-  dependencies: dependencies,
-  install: false
-)
+
 
 
 # Ensure assets and shaders are built with the main target

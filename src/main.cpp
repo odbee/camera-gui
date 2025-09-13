@@ -17,7 +17,11 @@ int main (int argc, char *argv[]) {
         glViewport(0, 0, guiHandler.getSelectedDisplayWidth(), guiHandler.getSelectedDisplayHeight());
         // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         // glClear(GL_COLOR_BUFFER_BIT);
+        // cameraPreview.FBOrender();
+        // cameraPreview.ScreenRender();
         cameraPreview.render();
+        
+
         guiHandler.swapWindow();
     }
     return 0;

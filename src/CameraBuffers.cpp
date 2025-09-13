@@ -51,6 +51,8 @@ static GLint compile_shader(GLenum target, const char *source)
 }
 
 
+GLint shaderProgram;
+GLuint VAO, VBO;
 
 static GLint link_program(GLint vs, GLint fs)
 {
@@ -83,7 +85,7 @@ static GLint link_program(GLint vs, GLint fs)
 
 void gl_setup()
 {
-    GLuint VAO, VBO;
+    
 	const char* vvss =
          "#version 300 es\n"
          "layout(location = 0) in vec4 pos;\n"
@@ -108,15 +110,16 @@ void gl_setup()
 	"  FragColor = texture2D(s, texcoord);\n"
 	"}\n";
 	GLint fs_s = compile_shader(GL_FRAGMENT_SHADER, fs);
-	GLint prog = link_program(vs_s, fs_s);
+	shaderProgram = link_program(vs_s, fs_s);
 
-	glUseProgram(prog);
-	glUniform1i(glGetUniformLocation(prog, "s"), 0);
-
+	glUseProgram(shaderProgram);
+	glUniform1i(glGetUniformLocation(shaderProgram, "s"), 0);
+    
 	glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
+	
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	// static const float verts[] = { -w_factor, -h_factor, w_factor, -h_factor, w_factor, h_factor, -w_factor, h_factor };
 	static const float verts[] = {
     // x, y, z, u, v
@@ -130,6 +133,11 @@ void gl_setup()
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(1,2, GL_FLOAT, GL_FALSE, 5*sizeof(float),(void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
+    glBindVertexArray(0);
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+
+    glUseProgram(0);
 }
 
 static void get_colour_space_info(std::optional<libcamera::ColorSpace> const &cs, EGLint &encoding, EGLint &range)
@@ -282,9 +290,15 @@ void CameraBuffers::Show()
 		makeBuffer(procid, fd, span_size, info, buffer);
 	last_fd_ = fd;
 
+    glUseProgram(shaderProgram);
+    glBindVertexArray(VAO);
     
+
+
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, buffer.texture);
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glBindVertexArray(0); 
+
 
 }
 
